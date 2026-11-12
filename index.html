@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>장면 이미지 선호 설문</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one pair per screen, two frames side by side like a light table; stacks on phones */
+:root {
+  --bg: #eef0f3; --surface: #ffffff; --fg: #17191d; --muted: #5d6470; --line: #d6dae1;
+  --accent: #2f5bd3; --accent-fg: #ffffff; --pick: #2f5bd3; --pick-soft: rgba(47,91,211,.14);
+  --font: "IBM Plex Sans KR", -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121418; --surface: #1b1e24; --fg: #e9ebef; --muted: #9aa1ad; --line: #2c3039;
+  --accent: #7f9cff; --accent-fg: #0e1220; --pick: #7f9cff; --pick-soft: rgba(127,156,255,.16); color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #121418; --surface: #1b1e24; --fg: #e9ebef; --muted: #9aa1ad; --line: #2c3039;
+  --accent: #7f9cff; --accent-fg: #0e1220; --pick: #7f9cff; --pick-soft: rgba(127,156,255,.16); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.6 var(--font); }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 18px; }
+.bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.bar h1 { font-size: 17px; font-weight: 700; margin: 0; flex: 1 1 auto; text-wrap: balance; }
+.count { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 14px; }
+.track { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.track i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s ease; }
+.q { margin: 0; font-size: 16px; font-weight: 600; }
+.q small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+.sp { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; }
+.sp-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; font-weight: 600; letter-spacing: .03em; color: var(--muted); }
+.sp-lang { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.sp-lang button { font: 600 12px var(--font); border: 0; padding: 3px 10px; background: transparent; color: var(--muted); cursor: pointer; }
+.sp-lang button.on { background: var(--accent); color: var(--accent-fg); }
+.sp-lang button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+#spText { margin: 0; font-size: 15px; line-height: 1.65; max-width: 80ch; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 720px) { .pair { grid-template-columns: 1fr; } }
+.opt { position: relative; display: grid; gap: 8px; padding: 8px; border: 2px solid var(--line); border-radius: 12px;
+  background: var(--surface); color: var(--fg); font: inherit; text-align: left; cursor: pointer; min-width: 0; transition: border-color .15s, background .15s; }
+.opt:hover { border-color: var(--muted); }
+.opt:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.opt.on { border-color: var(--pick); background: var(--pick-soft); }
+.opt img { width: 100%; max-width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 6px; display: block; background: var(--line); }
+.opt .lbl { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 14px; padding: 0 4px 2px; }
+.opt .chk { font-size: 13px; font-weight: 600; color: var(--pick); visibility: hidden; }
+.opt.on .chk { visibility: visible; }
+.zoom { position: absolute; top: 14px; right: 14px; border: 0; border-radius: 6px; padding: 4px 9px; font: 600 12px var(--font);
+  background: rgba(0,0,0,.55); color: #fff; cursor: zoom-in; }
+.nav { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+.btn { font: 600 14px var(--font); padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.status { font-size: 13px; color: var(--muted); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; display: grid; gap: 12px; max-width: 640px; }
+.panel h2 { margin: 0; font-size: 20px; }
+.panel p { margin: 0; color: var(--muted); }
+.results { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 14px; }
+th, td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: .03em; }
+.meter { display: flex; height: 8px; border-radius: 4px; overflow: hidden; min-width: 120px; background: var(--line); }
+.meter .a { background: var(--muted); } .meter .b { background: var(--accent); }
+.qs { display: grid; gap: 18px; }
+.qf { display: grid; gap: 6px; }
+.qf label { font-weight: 600; font-size: 15px; color: var(--fg); }
+.qf .hint { font-size: 13px; color: var(--muted); }
+.qf textarea { width: 100%; min-height: 110px; resize: vertical; font: 15px/1.6 var(--font); padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); }
+.qf textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.qf.err textarea { border-color: #d14343; }
+.testtag { margin-left: 10px; font-size: 12px; font-weight: 600; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 8px; vertical-align: middle; }
+.tp-step { font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--accent); font-variant-numeric: tabular-nums; }
+.qf .qtype { font-weight: 500; color: var(--muted); font-size: 12px; margin-left: 6px; }
+.opts { display: grid; gap: 6px; }
+.optrow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); cursor: pointer; font-size: 14px; }
+.optrow:has(input:checked) { border-color: var(--accent); background: var(--pick-soft); }
+.optrow input { accent-color: var(--accent); width: 16px; height: 16px; flex: none; margin: 0; }
+.other-in, .rank select { font: 14px var(--font); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); width: 100%; min-width: 0; }
+.other-in:focus-visible, .rank select:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.scale5 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.scale5 .optrow { justify-content: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.scale-ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.rank { display: grid; gap: 6px; }
+.rank label { display: grid; grid-template-columns: 44px 1fr; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.qf .sub-q { font-weight: 500; color: var(--muted); }
+.qf .opt-tag { color: var(--muted); font-weight: 500; font-size: 12px; margin-left: 6px; }
+#reason { min-height: 80px; }
+.qf .req { color: var(--accent); font-weight: 600; font-size: 12px; margin-left: 6px; }
+.answers { display: grid; gap: 18px; }
+.person { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; background: var(--bg); display: grid; gap: 12px; }
+.person summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; font-size: 15px; }
+.person summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pmeta { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.pblock { display: grid; gap: 4px; margin-top: 10px; }
+.pblock h3 { font-size: 13px; color: var(--muted); font-weight: 600; margin: 0; }
+.pblock p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pblock .none { color: var(--muted); font-size: 13px; }
+.ptag { display: inline-block; font-size: 12px; font-weight: 600; color: var(--accent); margin-right: 8px; font-variant-numeric: tabular-nums; }
+.answers h3 { margin: 0 0 6px; font-size: 15px; }
+.answers ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.answers li { white-space: pre-wrap; overflow-wrap: anywhere; }
+.lb { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.88); display: grid; place-items: center; padding: 16px; cursor: zoom-out; }
+.lb img { max-width: 100%; max-height: 100%; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<script src="config.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <h1>장면 이미지 선호 설문<span class="testtag" id="testTag" hidden>테스트 모드</span></h1>
+    <span class="count" id="count">불러오는 중</span>
+    <button class="btn" id="newRunBtn" hidden>새 응답 시작</button>
+  </div>
+  <div class="track" aria-hidden="true"><i id="prog"></i></div>
+
+  <section id="survey" hidden>
+    <div style="display:grid;gap:14px">
+      <p class="q">어느 이미지가 더 애니메이션의 한 컷처럼 몰입되나요?<small>이미지를 눌러 고른 뒤 다음을 누르세요. 크게 보려면 이미지 오른쪽 위 확대 버튼을 누르세요.</small></p>
+      <div class="sp">
+        <div class="sp-head"><span>장면 프롬프트</span>
+          <span class="sp-lang" role="group" aria-label="프롬프트 언어"><button type="button" id="spKo" class="on">한국어</button><button type="button" id="spEn">English</button></span>
+        </div>
+        <p id="spText"></p>
+      </div>
+      <div class="pair" id="pair"></div>
+      <div class="qf">
+        <label for="reason">왜 더 마음에 들었는지 설명도 해 주시면 좋아요. <span class="sub-q">(특히 가장 크게 본 예술적 요소는 무엇이었나요?)</span><span class="opt-tag">선택</span></label>
+        <textarea id="reason" placeholder="예: 조명 대비가 강해서 인물에 시선이 모이고, 구도 덕분에 고독한 분위기가 살아요."></textarea>
+      </div>
+      <div class="nav">
+        <button class="btn" id="prev">이전</button>
+        <button class="btn" id="skipBtn" hidden>서술형으로 바로 가기 (테스트)</button>
+        <span class="status" id="status"></span>
+        <button class="btn primary" id="next">다음</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="text" class="panel" hidden style="max-width:820px">
+    <span class="tp-step" id="tpStep"></span>
+    <h2 id="tpTitle"></h2>
+    <p id="tpIntro"></p>
+    <form id="textForm" class="qs" novalidate></form>
+    <div class="nav">
+      <button class="btn" id="textBack" type="button">이전</button>
+      <span class="status" id="textStatus"></span>
+      <button class="btn primary" id="textNext" type="button">다음</button>
+    </div>
+  </section>
+
+  <section id="msg" class="panel">
+    <h2>설문을 준비하고 있어요</h2>
+    <p>잠시만 기다려 주세요.</p>
+  </section>
+
+</div>
+<div class="lb" id="lb" hidden><img id="lbImg" alt=""></div>
+
+<script>
+(function () {
+  'use strict';
+  const IDS = Array.from({ length: 20 }, (_, i) => 'S' + String(i + 1).padStart(2, '0'));
+  const N = IDS.length;
+  // Scene prompts (A baseline text only; shown neutrally so the pair stays blind)
+  const PROMPTS = {"S01":{"ko":"긴 코트를 입은 외로운 젊은 회사원이 비 오는 밤, 텅 빈 역 승강장에서 접은 우산을 들고 혼자 막차를 기다린다. 일본 2D 셀 애니메이션 스타일, 조용하고 쓸쓸한 분위기.","en":"A lonely young office worker in a long coat waits alone for the last train on an empty station platform on a rainy night, holding a closed umbrella. Japanese 2D cel animation style, with a quiet and melancholic feeling."},"S02":{"ko":"폐허가 된 도시 거리 한가운데에 작은 소년이 서서, 고층 빌딩보다 높이 솟은 거대한 괴수를 겁에 질린 채 올려다본다. 먼지와 잔해가 공기를 채운다. 일본 2D 셀 애니메이션 스타일, 압도적이고 장대한 분위기.","en":"A small boy stands in the middle of a ruined city street and looks up in fear at a gigantic monster towering over the skyscrapers. Dust and debris fill the air. Japanese 2D cel animation style, with an overwhelming, epic feeling."},"S03":{"ko":"두 여고생이 석양이 지는 학교 옥상에서 작별 인사를 한다. 한 명은 계단 문 쪽으로 걸어가고, 친구는 펜스 옆에 남아 조용히 떠나는 모습을 바라본다. 일본 2D 셀 애니메이션 스타일, 씁쓸하고 감성적인 분위기.","en":"Two high school girls say goodbye on their school rooftop at sunset. One girl walks toward the stairway door while her friend stays by the fence and quietly watches her leave. Japanese 2D cel animation style, bittersweet and emotional."},"S04":{"ko":"밤, 좁은 골목에서 한 청년이 쌓인 쓰레기통 뒤에 웅크린 채 손으로 입을 막고 있다. 골목 입구에는 긴 코트를 입은 남자가 가로등을 등지고 서서, 청년의 머리 바로 위 벽을 손전등 불빛으로 훑고 있다. 일본 2D 셀 애니메이션 스타일, 긴장감 있는 스릴러 분위기.","en":"At night, a young man crouches behind stacked trash bins in a narrow alley, covering his mouth with his hand. At the alley entrance, a man in a long coat stands against a streetlight, sweeping a flashlight beam across the wall just above his head. Japanese 2D cel animation style, tense thriller mood."},"S05":{"ko":"망토를 두른 지친 여행자가 해 질 녘 눈 덮인 마을을 걷다가, 눈이 조용히 내리는 가운데 먼 창문에서 빛나는 따뜻한 불빛을 문득 발견한다. 일본 2D 셀 애니메이션 스타일, 희망차고 따뜻한 분위기.","en":"A tired traveler in a cloak walks through a snow-covered village at dusk and suddenly notices a warm light glowing in a distant window as snow falls softly around him. Japanese 2D cel animation style, hopeful and heartwarming mood."},"S06":{"ko":"밤의 깊은 숲, 어린 소년이 이끼 낀 나무뿌리 뒤에서 몸을 숨기고 내다본다. 앞쪽 작은 빈터에는 나무보다 키가 큰 거대한 흰 사슴 모습의 숲의 정령이 서 있고, 그 뿔은 옅은 푸른빛 나뭇가지처럼 은은하게 빛난다. 일본 2D 셀 애니메이션 스타일, 고요하고 신비로운 분위기.","en":"Deep in a forest at night, a young boy peeks out from behind a mossy tree root. In a small clearing ahead stands a huge white stag-like forest spirit, taller than the trees, its antlers glowing softly like branches of pale blue light. Japanese 2D cel animation style, quiet and mysterious atmosphere."},"S07":{"ko":"가족 저녁 식탁에서 아버지가 형을 다정하게 칭찬하고 있고, 우리와 가장 가까이 앉은 10대 소녀는 억지로 예의 바른 미소를 짓고 있다. 눈은 웃지 않고, 젓가락을 너무 세게 쥐어 손가락 마디가 하얗게 질려 있다. 일본 2D 셀 애니메이션 스타일, 조용히 억눌린 분노.","en":"At the family dinner table, the father warmly praises the older brother while a teenage girl sits closest to us, forcing a polite smile. Her eyes are not smiling, and she grips her chopsticks so hard that her knuckles turn white. Japanese 2D cel animation style, quiet, suppressed anger."},"S08":{"ko":"젊은 여검사가 거센 폭풍 한가운데의 절벽 위에서 온 힘을 다해 검을 휘두른다. 비와 번개가 그녀를 둘러싸고, 머리카락과 망토가 바람에 거칠게 휘날린다. 일본 2D 셀 애니메이션 스타일, 역동적인 액션 장면.","en":"A young swordswoman swings her sword with full force on a cliff in the middle of a violent storm. Rain and lightning surround her, and her hair and cloak whip wildly in the wind. Japanese 2D cel animation style, dynamic action scene."},"S09":{"ko":"방과 후, 한 소년이 텅 빈 교실에 혼자 서서 창가에 있는 친구의 빈 책상을 바라본다. 교실은 완전히 조용하고 부드러운 늦은 오후의 빛으로 차 있다. 일본 2D 셀 애니메이션 스타일, 슬프고 그리운 분위기.","en":"After school, a boy stands alone in an empty classroom, looking at his friend's empty desk by the window. The room is completely quiet and filled with soft late-afternoon light. Japanese 2D cel animation style, sad and nostalgic mood."},"S10":{"ko":"작은 나룻배를 탄 소녀가 건물들이 맑은 물에 반쯤 잠긴 도시를 떠다닌다. 거대하고 온순한 생명체가 그녀의 배 바로 옆 수면 아래를 헤엄친다. 일본 2D 셀 애니메이션 스타일, 경이롭고 놀라움이 가득한 분위기.","en":"A girl in a small rowboat floats through a flooded city where buildings are half submerged in clear water. A gigantic, gentle creature swims beneath the surface right next to her boat. Japanese 2D cel animation style, awe-inspiring and full of wonder."},"S11":{"ko":"젊은 복서가 어두운 경기장 통로를 따라 밝은 경기장 입구를 향해 걸어간다. 그 너머에서는 관중의 함성이 기다린다. 우리는 그의 뒷모습을 본다. 붕대 감은 주먹, 힘을 뺀 어깨, 이제 막 빛 속으로 들어서려는 순간. 일본 2D 셀 애니메이션 스타일, 집중과 결의의 분위기.","en":"A young boxer walks down a dark stadium tunnel toward the bright arena entrance, with the crowd's roar waiting beyond. We see him from behind, fists wrapped and shoulders loose, about to step into the light. Japanese 2D cel animation style, focused and determined mood."},"S12":{"ko":"여름방학 첫날, 한 여고생이 바닷가의 가파른 언덕길을 자전거로 내려가며 두 팔을 활짝 벌리고 있다. 머리카락과 치마가 바람에 날린다. 그녀 앞에는 새파란 바다와 높이 솟은 여름 구름이 펼쳐진다. 일본 2D 셀 애니메이션 스타일, 즐겁고 자유로운 분위기.","en":"On the first day of summer vacation, a high school girl rides her bicycle down a steep seaside hill road with her arms spread wide and her hair and skirt fluttering. The bright blue sea and tall summer clouds open up in front of her. Japanese 2D cel animation style, joyful and free."},"S13":{"ko":"한밤의 텅 빈 학교 복도, 휴대폰 불빛을 손전등처럼 든 소녀가 그 자리에 얼어붙는다. 긴 복도 끝, 잠겨 있어야 할 교실 문이 천천히 미끄러지듯 열리고, 안에는 어둠만 보인다. 일본 2D 셀 애니메이션 스타일, 조용한 공포.","en":"Late at night in an empty school hallway, a girl holding her phone as a flashlight freezes in place. At the far end of the long corridor, a classroom door that should be locked slowly slides open, revealing only darkness inside. Japanese 2D cel animation style, quiet horror."},"S14":{"ko":"여름의 끝, 한 소년이 시골 버스 뒷좌석에 무릎을 꿇고 뒷창 너머를 바라본다. 할머니가 작은 시골 버스 정류장에 홀로 서서 손을 흔들고, 버스가 노을 진 논길을 따라 멀어질수록 점점 작아진다. 일본 2D 셀 애니메이션 스타일, 그립고 아련한 분위기.","en":"At the end of summer, a boy kneels on the back seat of a rural bus, looking through the rear window. His grandmother stands alone at the small country bus stop, waving, growing smaller as the bus pulls away along the rice fields at sunset. Japanese 2D cel animation style, nostalgic and bittersweet."},"S15":{"ko":"우승을 놓친 결승전의 마지막 아웃 뒤 쏟아지는 빗속에서, 한 고교 투수가 진흙투성이 마운드에 고개를 숙이고 무릎을 꿇고 있다. 모자는 그의 옆에 떨어져 있다. 그의 뒤로 흐릿한 상대 팀이 경기장 조명 아래서 환호하고 있다. 일본 2D 셀 애니메이션 스타일, 무겁고 가슴 아픈 분위기.","en":"In heavy rain after the final out of a lost championship game, a high school pitcher kneels on the muddy mound with his head down and his cap fallen beside him. Behind him, the blurred opposing team celebrates under the stadium lights. Japanese 2D cel animation style, heavy and heartbreaking."},"S16":{"ko":"여름 축제, 유카타를 입은 소년과 소녀가 강둑에 나란히 앉아 있고 머리 위로 불꽃이 터진다. 소녀는 기뻐하며 하늘을 올려다보지만, 소년은 몰래 그녀를 바라보고 있다. 두 사람의 손은 풀밭 위에 닿을 듯 말 듯 놓여 있다. 일본 2D 셀 애니메이션 스타일, 수줍은 첫사랑의 설렘.","en":"At a summer festival, a boy and a girl in yukata sit side by side on a riverbank as fireworks burst overhead. She looks up at the sky with delight, but he is secretly looking at her instead. Their hands rest on the grass, almost touching. Japanese 2D cel animation style, shy first-love excitement."},"S17":{"ko":"비 오는 오후, 아늑한 나무 다락방의 둥근 창가에서 한 소녀가 가슴 위에 책을 펼쳐 둔 채 낮잠을 자고, 고양이가 그 옆에 몸을 말고 있다. 빗물이 유리를 타고 흐르고, 부드러운 회색빛이 방을 채운다. 일본 2D 셀 애니메이션 스타일, 고요하고 평화로운 분위기.","en":"On a rainy afternoon, a girl naps by the round window of a cozy wooden attic, a book open on her chest and a cat curled up beside her. Rain streaks the glass and soft gray light fills the room. Japanese 2D cel animation style, calm and peaceful."},"S18":{"ko":"한 소녀가 깊은 협곡 위의 오래된 돌다리를 전력으로 달리고, 그녀 뒤에서 다리가 무너지며 돌들이 허공으로 떨어진다. 그녀는 한 팔을 앞으로 뻗은 채 건너편 절벽 끝을 향해 뛰어오른다. 일본 2D 셀 애니메이션 스타일, 강렬하고 긴박한 액션.","en":"A girl sprints across an ancient stone bridge over a deep canyon as the bridge collapses behind her, stones breaking away into the void. She leaps toward the far cliff edge with one arm reaching forward. Japanese 2D cel animation style, intense and urgent action."},"S19":{"ko":"눈 오는 밤, 작은 편의점 앞 벤치에 한 소녀가 앉아 울고 있다. 방금 가게에서 나온 친구가 그녀 앞에 무릎을 꿇고 앉아, 부드럽게 웃으며 따뜻한 캔커피를 그녀의 볼에 살며시 댄다. 일본 2D 셀 애니메이션 스타일, 따뜻하고 위로가 되는 분위기.","en":"On a snowy night, a girl sits crying on a bench outside a small convenience store. Her friend has just come out and gently holds a warm can of coffee against her cheek, kneeling in front of her with a soft smile. Japanese 2D cel animation style, warm and comforting mood."},"S20":{"ko":"마지막 전투 전날 밤, 갑옷을 입은 어린 소녀 기사가 깃대를 쥔 채 성벽 위에 홀로 서 있다. 아래의 어두운 평원 너머로는 수천 개의 적군 횃불이 지평선까지 이어져 있다. 바람이 그녀의 망토와 머리카락을 잡아당긴다. 일본 2D 셀 애니메이션 스타일, 비장하고 영웅적인 분위기.","en":"On the night before the final battle, a young girl knight stands alone on top of a castle wall in her armor, holding a banner pole. Across the dark plain below, thousands of enemy torches stretch to the horizon. The wind pulls at her cape and hair. Japanese 2D cel animation style, solemn and heroic mood."}};
+  let spLang = 'ko';
+  try { if (localStorage.getItem('sp_lang') === 'en') spLang = 'en'; } catch (e) {}
+  const $ = (id) => document.getElementById(id);
+  let uid = null;
+  const ENDPOINT = (window.SURVEY_CONFIG && window.SURVEY_CONFIG.endpoint) || '';
+  const TEST = /[?&]test=1(&|$)/.test(location.search);
+  const LS_KEY = 'ab_scene_survey_v1';
+  const PARTS = [
+    { title: '레퍼런스로 이미지를 만들 때 불편한 점', intro: 'GPT Image에 레퍼런스 이미지를 넣어 만들던 경험을 떠올려 주세요. 답하기 어려운 질문은 비워 두셔도 돼요.' },
+    { title: '좋은 레퍼런스 이미지', intro: '스타일을 가져올 레퍼런스 이미지에 대해 묻습니다.' },
+    { title: '스타일 설명 자동 추출', intro: "레퍼런스를 넣으면 시스템이 스타일 설명을 자동으로 만들어 준다고 가정해 주세요. 예: '2단 셀 셰이딩, 끝이 가늘어지는 선, 보라 기운의 그림자'" },
+    { title: '프롬프트 입력 줄이기', intro: '레퍼런스를 넣고 원하는 결과를 얻기까지의 입력 과정에 대해 묻습니다.' },
+  ];
+  const QUESTIONS = [
+    { id: 'p1_fail', part: 0, no: '1-1', type: 'multi', label: '레퍼런스 이미지를 넣고 생성할 때 자주 겪는 문제를 모두 골라 주세요.',
+      options: ['스타일이 약하게 들어감', '레퍼런스의 인물이나 소품이 결과에 섞임', '원래 구도나 포즈가 바뀜', '캐릭터 얼굴이 달라짐', '색만 바뀌고 선이나 질감은 그대로임'] },
+    { id: 'p1_pick', part: 0, no: '1-2', type: 'multi', label: '레퍼런스에서 일부 요소만 가져오고 싶었던 적이 있나요? 있다면 무엇이었나요?',
+      options: ['색감', '선', '질감', '구도', '전체', '그런 적 없음'] },
+    { id: 'p1_retries', part: 0, no: '1-3', type: 'single', label: '원하는 결과가 나올 때까지 보통 몇 번 다시 생성하나요?',
+      options: ['1번', '2~3번', '4~5번', '6~10번', '10번 넘게'] },
+    { id: 'q2', part: 0, no: '1-4', type: 'text', label: 'GPT Image로 이미지를 만들 때, 중요한 건 알지만 번거로워서 자주 건너뛰거나 놓치는 작업은 무엇인가요?',
+      hint: '예: 컷마다 조명 방향 맞추기, 생성 전 레퍼런스 정리. 왜 건너뛰게 되는지도 적어 주세요.' },
+    { id: 'p2_ref', part: 1, no: '2-1', type: 'multi', label: '스타일 레퍼런스로 쓰기 좋은 이미지는 어떤 이미지인가요?',
+      options: ['캐릭터 한 명만 있는 그림', '배경까지 있는 그림', '깨끗한 선화', '채색까지 끝난 완성본'] },
+    { id: 'p2_slots', part: 1, no: '2-2', type: 'multi', label: '레퍼런스를 용도별로 나눠 넣을 수 있다면 어떤 칸이 필요할까요?',
+      options: ['스타일용', '캐릭터용', '구도용', '색감용', '나눌 필요 없음'] },
+    { id: 'p3_show', part: 2, no: '3-1', type: 'single', label: '자동으로 만든 스타일 설명을 어떻게 보여 주면 좋을까요?',
+      options: ['항상 보여 주기', '접어 두고 필요할 때 펼치기', '숨기고 자동으로만 쓰기'] },
+    { id: 'p3_edit', part: 2, no: '3-2', type: 'single', label: "추출된 설명을 직접 고쳐서 쓰시겠어요? (예: '셰이딩만 3단으로 바꾸기')",
+      options: ['자주 고칠 것 같다', '가끔 고칠 것 같다', '거의 안 고칠 것 같다'] },
+    { id: 'p3_terms', part: 2, no: '3-3', type: 'text', label: '스타일 설명에 꼭 들어가야 할 용어는 무엇인가요?',
+      hint: '예: 하이라이트 방식, 선 끝 처리, 그림자 색. 작가로서 실제로 쓰는 용어를 적어 주세요.' },
+    { id: 'p4_effort', part: 3, no: '4-1', type: 'scale', label: '레퍼런스를 넣을 때 프롬프트를 쓰는 게 얼마나 번거로운가요?',
+      lo: '전혀 번거롭지 않다', hi: '매우 번거롭다' },
+    { id: 'p4_input', part: 3, no: '4-2', type: 'rank', label: '다음 중 가장 편할 것 같은 방식을 1~3위까지 골라 주세요.',
+      options: ['이미지만 넣으면 자동 처리', '버튼이나 체크박스로 선택 (색만 / 선만 / 전체)', '짧은 한 줄 + 시스템이 자동 보완', '결과를 보고 대화로 수정 요청', "레퍼런스 위를 클릭해 '이 부분 느낌' 지정"] },
+    { id: 'p4_edit', part: 3, no: '4-3', type: 'rank', label: '이미지의 일부를 고칠 때 가장 쓰고 싶은 방식을 1~3위까지 골라 주세요.',
+      options: ['스크리블: 대충 그려서 형태나 위치 지시', '바운딩 박스: 네모로 영역 지정 + 텍스트', '마스크: 브러시로 칠한 영역만 수정', "텍스트만: '왼쪽 인물 표정을 슬프게'", '포인트 클릭: 대상을 누르면 영역 자동 선택'] },
+  ];
+  // Questions from earlier versions; shown in results only when someone answered them
+  const LEGACY = [
+    { id: 'q1', type: 'text', no: '이전', label: 'GPT Image로 이미지를 만들 때 원하는 대로 잘 안 되는 부분은 무엇인가요?' },
+    { id: 'q3', type: 'text', no: '이전', label: '위 문제를 도와주는 기능이 있다면 어떤 모습이면 좋을까요?' },
+  ];
+  const OTHER = '기타';
+  function fmt(q, v) {
+    if (v == null || v === '') return '';
+    if (q.type === 'text' || typeof v === 'string') return String(v).trim();
+    const other = (v.other || '').trim();
+    const name = (x) => x === OTHER ? '기타' + (other ? ' (' + other + ')' : '') : x;
+    if (q.type === 'multi') return (v.sel || []).map(name).join(', ');
+    if (q.type === 'single') return v.sel ? name(v.sel) : '';
+    if (q.type === 'scale') return [v.score ? v.score + '점' : '', other ? '기타 의견: ' + other : ''].filter(Boolean).join(' / ');
+    if (q.type === 'rank') {
+      const r = (v.rank || []).map((x, i) => x ? (i + 1) + '위 ' + name(x) : '').filter(Boolean).join(', ');
+      const extra = other && !(v.rank || []).includes(OTHER) ? '기타 의견: ' + other : '';
+      return [r, extra].filter(Boolean).join(' / ');
+    }
+    return '';
+  }
+  const blankRun = () => ({ choices: {}, order: {}, reasons: {}, text: {}, submitted: false, startedAt: new Date().toISOString() });
+  const newRunId = () => 'r' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
+  // One doc per account: { runs: { runId: run }, current: runId }. Older docs kept one flat run.
+  function runsOf(d) {
+    if (!d) return {};
+    if (d.runs && typeof d.runs === 'object') return d.runs;
+    if (d.choices) return { r0: { choices: d.choices, order: d.order || {}, reasons: d.reasons || {}, text: d.text || {}, submitted: !!d.submitted, updatedAt: d.updatedAt } };
+    return {};
+  }
+  let runs = {}, runId = null;
+  let state = blankRun();
+  let idx = 0, canSave = true;
+
+  // Seeded shuffle: each respondent gets a stable left/right order per scene
+  function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function orderFor(id) {
+    if (!state.order[id]) state.order[id] = (hash(uid + ':' + runId + ':' + id) & 1) ? 'AB' : 'BA';
+    return state.order[id];
+  }
+  const answered = () => IDS.filter((id) => state.choices[id]).length;
+
+  function showMsg(title, body) {
+    $('msg').hidden = false; $('survey').hidden = true; $('text').hidden = true;
+    $('msg').innerHTML = '<h2></h2><p></p>';
+    $('msg').querySelector('h2').textContent = title;
+    $('msg').querySelector('p').textContent = body;
+  }
+
+  function render() {
+    const n = answered();
+    $('count').textContent = (idx + 1) + ' / ' + N + ' · 응답 ' + n;
+    $('prog').style.width = (n / N * 100) + '%';
+    const id = IDS[idx], ord = orderFor(id), pick = state.choices[id];
+    if (document.activeElement !== $('reason')) $('reason').value = state.reasons[id] || '';
+    $('spText').textContent = (PROMPTS[id] && PROMPTS[id][spLang]) || '';
+    $('spText').lang = spLang;
+    $('spKo').classList.toggle('on', spLang === 'ko'); $('spEn').classList.toggle('on', spLang === 'en');
+    $('spKo').setAttribute('aria-pressed', spLang === 'ko'); $('spEn').setAttribute('aria-pressed', spLang === 'en');
+    const pair = $('pair'); pair.textContent = '';
+    ['왼쪽', '오른쪽'].forEach((side, i) => {
+      const cond = ord[i];
+      const b = document.createElement('button');
+      b.type = 'button'; b.id = 'opt-' + i; b.className = 'opt' + (pick === cond ? ' on' : '');
+      b.setAttribute('aria-pressed', pick === cond ? 'true' : 'false');
+      b.innerHTML = '<img alt="" loading="eager"><span class="lbl"><span></span><span class="chk">선택함</span></span>';
+      b.querySelector('img').src = 'img/' + id + '_' + cond + '.jpg';
+      b.querySelector('img').alt = side + ' 이미지';
+      b.querySelector('.lbl span').textContent = side + ' 이미지';
+      b.addEventListener('click', () => choose(id, cond));
+      const z = document.createElement('span');
+      z.className = 'zoom'; z.textContent = '확대'; z.setAttribute('role', 'button'); z.tabIndex = 0;
+      const open = (e) => { e.stopPropagation(); $('lbImg').src = 'img/' + id + '_' + cond + '.jpg'; $('lb').hidden = false; };
+      z.addEventListener('click', open);
+      z.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e); } });
+      b.appendChild(z);
+      pair.appendChild(b);
+    });
+    $('prev').disabled = idx === 0;
+    $('next').textContent = idx === N - 1 ? '서술형 질문으로' : '다음';
+    $('next').disabled = !pick;
+    // preload next pair
+    if (idx + 1 < N) ['A', 'B'].forEach((c) => { const im = new Image(); im.src = 'img/' + IDS[idx + 1] + '_' + c + '.jpg'; });
+  }
+
+  const NO_ENDPOINT = '저장 주소가 설정되지 않아 이 기기에만 저장돼요. 설문 관리자에게 알려 주세요.';
+  function persistLocal() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ uid: uid, runs: runs, current: runId })); } catch (e) {}
+  }
+  function rowFor(r) {
+    const headers = ['응답 ID', '테스트', '제출 여부', '선택 수', '시작', '마지막 저장'];
+    const values = [uid + '_' + runId, TEST ? 'Y' : '', r.submitted ? '제출함' : '작성 중', r.answered || 0, r.startedAt || '', r.updatedAt || ''];
+    IDS.forEach((id) => {
+      headers.push(id + ' 선택', id + ' 왼쪽', id + ' 이유');
+      values.push((r.choices && r.choices[id]) || '', (r.order && r.order[id] ? r.order[id][0] : ''), (r.reasons && r.reasons[id]) || '');
+    });
+    QUESTIONS.forEach((q) => { headers.push(q.no + '. ' + q.label); values.push(fmt(q, r.text && r.text[q.id])); });
+    return { id: uid + '_' + runId, headers: headers, values: values };
+  }
+  let sendTimer = null, dirty = false, inflight = Promise.resolve(true), lastStatusEl = null;
+  function send() {
+    clearTimeout(sendTimer); sendTimer = null;
+    if (!ENDPOINT || !dirty) return inflight;
+    dirty = false;
+    const body = JSON.stringify(rowFor(runs[runId]));
+    const el = lastStatusEl;
+    inflight = inflight.then(() => fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: body })
+      .then((res) => res.ok ? res.json().catch(() => ({ ok: true })) : { ok: false })
+      .then((j) => { if (!j || j.ok === false) throw new Error('save failed'); if (el && !dirty) el.textContent = '저장됨'; return true; })
+      .catch(() => { dirty = true; if (el) el.textContent = '저장하지 못했어요. 인터넷 연결을 확인해 주세요. 다음 입력 때 다시 저장합니다.'; return false; }));
+    return inflight;
+  }
+  // Records locally right away; sends to the sheet after a short pause, or at once when `now` is set
+  function save(statusEl, now) {
+    statusEl = statusEl || $('status'); lastStatusEl = statusEl;
+    const t = new Date().toISOString();
+    runs[runId] = { choices: state.choices, order: state.order, reasons: state.reasons, text: state.text, submitted: state.submitted,
+      startedAt: state.startedAt || t, answered: answered(), done: answered() === N && state.submitted, updatedAt: t };
+    persistLocal();
+    if (!ENDPOINT) { statusEl.textContent = NO_ENDPOINT; return Promise.resolve(false); }
+    dirty = true; statusEl.textContent = '저장 중';
+    if (now) return send();
+    clearTimeout(sendTimer); sendTimer = setTimeout(send, 1200);
+    return Promise.resolve(true);
+  }
+  function flushOnLeave() {
+    if (!ENDPOINT || !dirty) return;
+    clearTimeout(sendTimer);
+    try {
+      const ok = navigator.sendBeacon && navigator.sendBeacon(ENDPOINT, new Blob([JSON.stringify(rowFor(runs[runId]))], { type: 'text/plain;charset=utf-8' }));
+      if (ok) dirty = false;
+    } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushOnLeave(); });
+  window.addEventListener('pagehide', flushOnLeave);
+
+  // Written questions after the 20 picks, one page per part
+  let tpage = 0;
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function val(q) {
+    let v = state.text[q.id];
+    if (q.type === 'text') return typeof v === 'string' ? v : '';
+    if (!v || typeof v !== 'object') {
+      v = q.type === 'multi' ? { sel: [], other: '' } : q.type === 'rank' ? { rank: ['', '', ''], other: '' } : q.type === 'scale' ? { score: 0, other: '' } : { sel: '', other: '' };
+      state.text[q.id] = v;
+    }
+    return v;
+  }
+  const commit = () => save($('textStatus'));
+  function optRow(type, name, value, checked, onChange) {
+    const lab = el('label', 'optrow');
+    const inp = document.createElement('input'); inp.type = type; inp.name = name; inp.value = value; inp.checked = checked;
+    inp.addEventListener('change', onChange);
+    lab.appendChild(inp); lab.appendChild(el('span', null, value));
+    return { lab, inp };
+  }
+  function otherInput(q, v, placeholder, onType) {
+    const o = document.createElement('input'); o.type = 'text'; o.className = 'other-in'; o.id = 'oth-' + q.id;
+    o.placeholder = placeholder; o.value = v.other || ''; o.setAttribute('aria-label', q.no + ' 기타 내용');
+    o.addEventListener('input', () => { v.other = o.value; if (onType) onType(); });
+    o.addEventListener('change', () => { v.other = o.value.trim(); commit(); });
+    return o;
+  }
+  function buildQuestion(q) {
+    const d = el('div', 'qf'); d.id = 'qf-' + q.id;
+    const typeName = { multi: '여러 개 선택', single: '하나 선택', scale: '1~5점', rank: '1~3위', text: '서술형' }[q.type];
+    const l = el('label', null, q.no + '. ' + q.label); l.appendChild(el('span', 'qtype', typeName)); d.appendChild(l);
+    if (q.hint) d.appendChild(el('span', 'hint', q.hint));
+    if (q.type === 'text') {
+      l.htmlFor = 'ta-' + q.id;
+      const ta = document.createElement('textarea'); ta.id = 'ta-' + q.id; ta.value = val(q);
+      ta.addEventListener('input', () => { state.text[q.id] = ta.value; });
+      ta.addEventListener('change', () => { state.text[q.id] = ta.value.trim(); commit(); });
+      d.appendChild(ta); return d;
+    }
+    const v = val(q);
+    if (q.type === 'multi' || q.type === 'single') {
+      const box = el('div', 'opts'); box.setAttribute('role', 'group'); box.setAttribute('aria-label', q.no);
+      const type = q.type === 'multi' ? 'checkbox' : 'radio';
+      const has = (x) => q.type === 'multi' ? v.sel.includes(x) : v.sel === x;
+      let otherInp = null;
+      const setSel = (x, on) => {
+        if (q.type === 'multi') { v.sel = v.sel.filter((y) => y !== x); if (on) v.sel.push(x); }
+        else if (on) v.sel = x;
+        if (otherInp) otherInp.hidden = !has(OTHER);
+      };
+      q.options.concat([OTHER]).forEach((x) => {
+        const r = optRow(type, 'in-' + q.id, x, has(x), (e) => { setSel(x, e.target.checked); commit(); if (x === OTHER && e.target.checked) otherInp.focus(); });
+        box.appendChild(r.lab);
+        if (x === OTHER) {
+          otherInp = otherInput(q, v, '기타 내용을 적어 주세요', () => {
+            if (v.other.trim() && !has(OTHER)) { setSel(OTHER, true); r.inp.checked = true; }
+          });
+          otherInp.hidden = !has(OTHER);
+          box.appendChild(otherInp);
+        }
+      });
+      d.appendChild(box); return d;
+    }
+    if (q.type === 'scale') {
+      const row = el('div', 'scale5'); row.setAttribute('role', 'radiogroup'); row.setAttribute('aria-label', q.no);
+      [1, 2, 3, 4, 5].forEach((n) => {
+        const r = optRow('radio', 'in-' + q.id, String(n), v.score === n, () => { v.score = n; commit(); });
+        r.lab.querySelector('span').textContent = n;
+        row.appendChild(r.lab);
+      });
+      d.appendChild(row);
+      const ends = el('div', 'scale-ends'); ends.appendChild(el('span', null, '1 = ' + q.lo)); ends.appendChild(el('span', null, '5 = ' + q.hi)); d.appendChild(ends);
+      d.appendChild(otherInput(q, v, '기타 의견 (선택)'));
+      return d;
+    }
+    if (q.type === 'rank') {
+      const box = el('div', 'rank');
+      const selects = [];
+      const otherInp = otherInput(q, v, '기타를 골랐다면 내용을, 아니면 기타 의견을 적어 주세요 (선택)');
+      const refresh = () => {
+        selects.forEach((sel, i) => {
+          Array.from(sel.options).forEach((o) => { o.disabled = !!o.value && o.value !== OTHER && v.rank.some((x, j) => j !== i && x === o.value); });
+        });
+      };
+      [0, 1, 2].forEach((i) => {
+        const lab = el('label'); lab.appendChild(el('span', null, (i + 1) + '위'));
+        const sel = document.createElement('select'); sel.id = 'rk-' + q.id + '-' + i;
+        sel.appendChild(new Option('고르지 않음', ''));
+        q.options.concat([OTHER]).forEach((x) => sel.appendChild(new Option(x, x)));
+        sel.value = v.rank[i] || '';
+        sel.addEventListener('change', () => { v.rank[i] = sel.value; refresh(); commit(); });
+        lab.appendChild(sel); box.appendChild(lab); selects.push(sel);
+      });
+      refresh();
+      box.appendChild(otherInp);
+      d.appendChild(box); return d;
+    }
+    return d;
+  }
+  function buildForm() {
+    const f = $('textForm'); f.textContent = '';
+    const part = PARTS[tpage];
+    $('tpStep').textContent = '서술형 ' + (tpage + 1) + ' / ' + PARTS.length;
+    $('tpTitle').textContent = (tpage + 1) + '. ' + part.title;
+    $('tpIntro').textContent = part.intro;
+    QUESTIONS.filter((q) => q.part === tpage).forEach((q) => f.appendChild(buildQuestion(q)));
+    $('textNext').textContent = tpage === PARTS.length - 1 ? '제출하기' : '다음';
+    $('textBack').textContent = tpage === 0 ? '이미지 선택으로 돌아가기' : '이전';
+  }
+  function showText(page) {
+    if (typeof page === 'number') tpage = page;
+    $('survey').hidden = true; $('msg').hidden = true; $('text').hidden = false;
+    $('count').textContent = N + ' / ' + N + ' · 서술형 ' + (tpage + 1) + '/' + PARTS.length;
+    $('prog').style.width = '100%';
+    buildForm();
+    $('textStatus').textContent = '';
+    window.scrollTo({ top: 0 });
+  }
+  $('textBack').addEventListener('click', () => {
+    if (tpage > 0) { showText(tpage - 1); return; }
+    $('text').hidden = true; $('survey').hidden = false; idx = N - 1; render();
+  });
+  $('textNext').addEventListener('click', async () => {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    if (tpage < PARTS.length - 1) { showText(tpage + 1); return; }
+    $('textNext').disabled = true;
+    state.submitted = true;
+    const ok = await save($('textStatus'), true);
+    $('textNext').disabled = false;
+    if (ok) finish(); else state.submitted = false;
+  });
+
+  function choose(id, cond) {
+    state.choices[id] = cond; orderFor(id);
+    save(); render();
+  }
+  function go(d) {
+    if (d > 0 && idx === N - 1) { if (answered() === N) showText(0); return; }
+    if (d > 0 && !state.choices[IDS[idx]]) return;
+    idx = Math.max(0, Math.min(N - 1, idx + d)); render(); window.scrollTo({ top: 0 });
+  }
+  function finish() {
+    $('count').textContent = N + ' / ' + N + ' · 완료';
+    $('prog').style.width = '100%';
+    showMsg('응답해 주셔서 감사합니다', '20개 장면의 선택과 서술형 답변이 모두 저장됐어요. 같은 기기로 다른 사람이 응답하려면 새 응답을 시작해 주세요. 지금 응답은 그대로 남아요.');
+    const again = document.createElement('div'); again.className = 'nav'; again.style.justifyContent = 'flex-start';
+    again.innerHTML = '<button class="btn primary" id="startNew">새 응답 시작</button><button class="btn" id="review">내 응답 다시 보기</button>';
+    $('msg').appendChild(again);
+    $('startNew').addEventListener('click', startNewRun);
+    $('review').addEventListener('click', () => { idx = 0; $('msg').hidden = true; $('survey').hidden = false; render(); });
+  }
+
+  function startNewRun() {
+    save(null, true);
+    runId = newRunId(); state = blankRun(); idx = 0;
+    $('msg').hidden = true; $('text').hidden = true; $('survey').hidden = false;
+    render(); save(); window.scrollTo({ top: 0 });
+  }
+  let viewBeforeConfirm = null;
+  $('newRunBtn').addEventListener('click', () => {
+    viewBeforeConfirm = ['survey', 'text', 'msg'].find((v) => !$(v).hidden) || 'survey';
+    if (viewBeforeConfirm === 'msg' && state.submitted) { startNewRun(); return; }
+    showMsg('새 응답을 시작할까요?', '지금까지의 응답(' + answered() + '/' + N + ' 선택)은 지워지지 않고 그대로 저장돼요. 같은 기기로 다른 사람이 응답할 때 사용하세요.');
+    const row = document.createElement('div'); row.className = 'nav'; row.style.justifyContent = 'flex-start';
+    row.innerHTML = '<button class="btn primary" id="confirmNew">새 응답 시작</button><button class="btn" id="cancelNew">취소</button>';
+    $('msg').appendChild(row);
+    $('confirmNew').addEventListener('click', startNewRun);
+    $('cancelNew').addEventListener('click', () => {
+      $('msg').hidden = true;
+      if (viewBeforeConfirm === 'text') showText();
+      else if (viewBeforeConfirm === 'msg' || (answered() === N && state.submitted)) finish();
+      else { $('survey').hidden = false; render(); }
+    });
+  });
+  function setLang(l) { spLang = l; try { localStorage.setItem('sp_lang', l); } catch (e) {} render(); }
+  $('spKo').addEventListener('click', () => setLang('ko'));
+  $('spEn').addEventListener('click', () => setLang('en'));
+  $('reason').addEventListener('input', () => { state.reasons[IDS[idx]] = $('reason').value; });
+  $('reason').addEventListener('change', () => {
+    const id = IDS[idx], v = $('reason').value.trim();
+    if (v) state.reasons[id] = v; else delete state.reasons[id];
+    save();
+  });
+  $('prev').addEventListener('click', () => go(-1));
+  $('next').addEventListener('click', () => go(1));
+  $('lb').addEventListener('click', () => { $('lb').hidden = true; });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') $('lb').hidden = true;
+    if ($('survey').hidden || !$('lb').hidden || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowLeft') go(-1);
+    if (e.key === 'ArrowRight') go(1);
+  });
+
+  $('skipBtn').addEventListener('click', () => showText(0));
+
+  function start() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) {}
+    uid = (saved && saved.uid) || ('b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+    if (saved && saved.runs) {
+      runs = saved.runs;
+      runId = (saved.current && runs[saved.current]) ? saved.current : null;
+      if (runId) { const r = runs[runId]; state = { choices: r.choices || {}, order: r.order || {}, reasons: r.reasons || {}, text: r.text || {}, submitted: !!r.submitted, startedAt: r.startedAt }; }
+    }
+    if (!runId) runId = newRunId();
+    persistLocal();
+    $('newRunBtn').hidden = false;
+    $('skipBtn').hidden = !TEST; $('testTag').hidden = !TEST;
+    const first = IDS.findIndex((id) => !state.choices[id]);
+    idx = first === -1 ? 0 : first;
+    $('msg').hidden = true; $('survey').hidden = false;
+    render();
+    if (!ENDPOINT) $('status').textContent = NO_ENDPOINT;
+    if (first === -1) { if (state.submitted) finish(); else showText(0); }
+  }
+  start();
+})();
+</script>
+</body>
+</html>
